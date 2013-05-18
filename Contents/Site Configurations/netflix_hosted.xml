@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site site="http://www\.netflix\.com/WiPlayer.*oauth_nonce="
+    plugin="silverlight"
+    initialState="init"
+    finalState="cleanup"
+    windowWidth="1920"
+    windowHeight="1080"
+    agent="Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.83 Safari/537.1"
+    identifier="com.plexapp.plugins.netflixuk"
+    version="2.0">
+
+    <crop x="0" y="0" width="0" height="0" />
+
+<!--
+    <seekbar type="javascript">
+        <percentComplete equals="((netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==103 ? netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_position : netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_position ) * 100) / (netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_duration+1)" />
+        <smallStep minus="if(netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==103) { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_previous(); } else { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_enter(); }" plus="if(netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==103) { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_next(); } else { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_enter(); }"/>
+        <bigStep minus="if(netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==103) { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_previous(); } else { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_enter(); }" plus="if(netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==103) { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_next(); } else { netflix.Silverlight.MoviePlayer.get_hosted_player_control().trick_play_enter(); }"/>
+        <end condition="netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==105"/>
+    </seekbar>
+-->
+
+    <state name="cleanup">
+        <event>
+            <condition>
+                <pref name="password" exists="true"/>
+            </condition>
+            <action>
+                <run script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().close();"/>
+                <pause time="1000"/>
+            </action>
+        </event>
+    </state>
+
+    <state name="init">
+        <event>
+            <condition>
+                <title matches="^Netflix$"/>
+            </condition>
+            <action>
+                <goto state="do_open"/>
+            </action>
+        </event>
+    </state>
+
+    <state name="do_open">
+        <event>
+            <condition>
+                <frameLoaded />
+            </condition>
+            <action>
+                <goto state="do_open_really" />
+            </action>
+        </event>
+    </state>
+
+    <state name="do_open_really">
+        <event>
+            <condition>
+                <javascript script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==999 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <run script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().close();"/>
+                <pause time="7000"/>
+                <goto state="end" param="Netflix player encountered an error"/>
+            </action>
+        </event>
+
+        <event>
+            <condition>
+                <javascript script="document.getElementById('SLPlayerWrapper')==null" matches="1"/>
+            </condition>
+            <action>
+                <visit url="https://www.netflix.com/Logout" />
+                <pause time="3000"/>
+                <goto state="end" param="Problem playing video.  Please ensure that you have the instant watch capability and try again."/>
+            </action>
+        </event>
+
+        <event>
+            <condition>
+                <javascript script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==0 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+                <run script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().open({'show_navigation_panel':false,'show_player_panel':false,'ignore_bookmark':(location.href.indexOf('resume=true')!=-1 ? false : true)});"/>
+                <pause time="100"/>
+                <run script="NF=netflix.Silverlight.MoviePlayer.get_hosted_player_control();"/>
+                <pause time="100"/>
+                <goto state="buffering"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <javascript script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().play_state==101 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+                <goto state="playing"/>
+            </action>
+        </event>
+    </state>
+
+    <state name="playing">
+
+        <event>
+            <condition>
+                <command name="pause" />
+            </condition>
+            <action>
+                <run script="NF.pause();"/>
+                <pause time="50"/>
+                <goto state="paused"/>
+            </action>
+        </event>
+
+        <event>
+            <condition>
+                <command name="chapter+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="chapter-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="bigstep+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="bigstep-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+
+        <event>
+            <condition>
+                <command name="smallstep+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="smallstep-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_enter()"/>
+                <pause time="50"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+
+    </state>
+
+    <state name="paused">
+        <event>
+            <condition>
+                <command name="play" />
+            </condition>
+            <action>
+                <pause time="100"/>
+                <run script="NF.play();"/>
+                <goto state="playing"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <javascript script="NF.play_state==103 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+                <goto state="trickplay"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <!-- hmmm the player is playing... pause to force back into
+                     the pause state for consistency.., this usually
+                     happens when "trick playing" -->
+                <javascript script="NF.play_state==101 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+                <run script="NF.pause();"/>
+            </action>
+        </event>
+    </state>
+
+<!-- BUFFERING -->
+    <state name="buffering">
+        <event>
+            <condition>
+                <command name="pause"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="play"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <javascript script="NF.play_state==101 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="100"/>
+                <goto state="playing"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <javascript script="NF.play_state==999 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <run script="netflix.Silverlight.MoviePlayer.get_hosted_player_control().close();"/>
+                <pause time="7000"/>
+                <goto state="end" param="Netflix player encountered an error"/>
+            </action>
+        </event>
+    </state>
+
+<!-- TRICKPLAY -->
+    <state name="trickplay">
+        <event>
+            <condition>
+                <command name="play" />
+            </condition>
+            <action>
+                <run script="NF.play();"/>
+                <pause time="100"/>
+                <goto state="buffering"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="pause" />
+            </condition>
+            <action>
+                <run script="NF.play();"/>
+                <pause time="100"/>
+                <goto state="buffering"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="smallstep+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_next();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="smallstep-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_previous();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="bigstep+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_next();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="bigstep-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_previous();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="chapter+" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_next();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+        <event>
+            <condition>
+                <command name="chapter-" />
+            </condition>
+            <action>
+                <run script="NF.trick_play_previous();"/>
+                <pause time="50"/>
+            </action>
+        </event>
+    </state>
+</site>

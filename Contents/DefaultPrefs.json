@@ -1,0 +1,29 @@
+[
+    {
+        "id": "username",
+        "type": "text",
+        "label": "Login Email",
+        "default": ""
+    },
+    {
+        "id": "password",
+        "type": "text",
+        "label": "Password",
+        "default": "",
+        "option": "hidden"
+    },
+    {
+        "id": "playbackpreference",
+        "type": "enum",
+        "label": "Playback",
+        "values": [ "Restart", "Resume" ],
+        "default": "Restart"
+    },
+    {
+        "id": "region",
+        "type": "enum",
+        "label": "Region",
+        "values": [ "UK" ],
+        "default": "UK"
+    }
+]

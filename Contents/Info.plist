@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.plexapp.plugins.netflixuk</string>
+	<key>PlexClientCapabilities</key>
+	<dict>
+		<key>protocols</key>
+		<array>
+			<string>webkit</string>
+		</array>
+	</dict>
+	<key>PlexClientPlatformExclusions</key>
+	<string>Roku</string>
+	<key>PlexClientPlatforms</key>
+	<string>*</string>
+	<key>PlexFrameworkVersion</key>
+	<string>2</string>
+	<key>PlexMediaContainer</key>
+	<array>
+		<string>Silverlight</string>
+	</array>
+	<key>PlexPluginRegions</key>
+	<array>
+		<string>UK</string>
+	</array>
+	<key>PlexPluginCodePolicy</key>
+	<string>Elevated</string>
+</dict>
+</plist>
