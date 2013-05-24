@@ -12,7 +12,7 @@ On the Mac it's located at
 I've built up a custom API specifically for the UK version of Netflix and it's available at [api.djinteractive.co.uk/netflix/](http://api.djinteractive.co.uk/netflix). The data is currently sourced from TheTVDB and TheMovieDB with Freebase providing the IMDB id's that are used as the primary link between the services. I'll add more documentation on the API soon.
 
 ## Notes
-Currently there is no support for selecting individual episodes of TV shows, for the time being it will simply play the next episode in the queue. I'll be adding support for this in the API at a later stage. Whilst most of the show information is accurate there may a couple instances where this is not the case. I'm currrently working on a frontend to flag these issues and deal with any inconsistances.
+Whilst most of the show information is accurate there may a couple instances where this is not the case. I'm currrently working on a frontend to flag these issues and deal with any inconsistances.
 
 ## Thanks
 [Plex Team](https://github.com/plexinc-plugins/Netflix.bundle) - Original Netflix plugin on which this is based

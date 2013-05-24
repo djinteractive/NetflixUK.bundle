@@ -20,13 +20,12 @@ EPISODE_TITLE_PATTERN = Regex("^S(?P<season>[0-9]+):E(?P<episode>[0-9]+) - (?P<t
 ###################################################################################################
 
 def MainMenu():
-
   # Attempt to log in
   logged_in = Account.LoggedIn()
   if not logged_in:
     logged_in = Account.TryLogIn()
 
-  oc = ObjectContainer(no_cache = True)
+  oc = ObjectContainer(no_cache = True, title1 = "Netflix UK")
 
   if logged_in:
 
@@ -76,7 +75,7 @@ def FreeTrial():
 ###################################################################################################
 
 @route("/video/netflixuk/uk/menuitem")
-def MenuItem(url, title, page = 1, interval = 50, content = ContainerContent.Mixed, is_queue = False):
+def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = ContainerContent.Mixed, is_queue = False):
   oc = ObjectContainer(title2 = title, content = content)
 
   # Separate out the specified parameters from the original URL
@@ -96,35 +95,88 @@ def MenuItem(url, title, page = 1, interval = 50, content = ContainerContent.Mix
     Log("Error loading url : " + str(data["status"]["code"]) + " " + url )
     return ObjectContainer(header="No Results", message="No results were found")
 
+  if type == "Episodes":
+    if "episodes" in data and data["episodes"]:
+      video_url = PlaybackURL( PLAYER_URL % data["id"], Prefs["playbackpreference"] )
+      oc.add(EpisodeObject(
+        key = Callback(Lookup, type = "Movie", id = data["id"]),
+        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Movie", url = video_url, id = data["id"]))], protocol = "webkit") ],
+        rating_key = data["id"],
+        title = "Resume",
+        show = data["name"],
+        thumb = POSTER_URL % data["imdb"],
+        summary = data["overview"],
+        duration = data["runtime"] * 60 * 1000,
+        rating = float(data["rating"])/10,
+        content_rating = data["classification"]))
+      for item in data["episodes"]:
+        video_url = PlaybackURL( PLAYER_URL % item["id"], Prefs["playbackpreference"] )
+        episode_name = str(item["season"]) + "x" + str(item["episode"]).zfill(2) + " " + item["name"]
+        oc.add(EpisodeObject(
+          key = Callback(Lookup, type = "Movie", id = item["id"]),
+          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Episode", url = video_url, id = item["id"]))], protocol = "webkit") ],
+          rating_key = item["id"],
+          title = episode_name,
+          show = data["name"],
+          season = item["season"],
+          index = item["episode"],
+          thumb = item["image"],
+          summary = item["overview"],
+          duration = item["runtime"] * 60 * 1000,
+          rating = float(data["rating"])/10,
+          content_rating = data["classification"]))
+    else: # Handle one off TV Programmes that have no individual episodes
+      video_url = PlaybackURL( PLAYER_URL % data["id"], Prefs["playbackpreference"] )
+      oc.add(EpisodeObject(
+        key = Callback(Lookup, type = "Movie", id = data["id"]),
+        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Episode", url = video_url, id = data["id"]))], protocol = "webkit") ],
+        rating_key = data["id"],
+        title = data["name"],
+        show = data["name"],
+        season = 0,
+        index = 0,
+        thumb = POSTER_URL % data["imdb"],
+        summary = data["overview"],
+        duration = data["runtime"] * 60 * 1000,
+        rating = float(data["rating"])/10,
+        content_rating = data["classification"]))
+  else:
+    for item in data["results"]:
+      video_url = PlaybackURL( PLAYER_URL % item["id"], Prefs["playbackpreference"] )
+      studios = ""
+      if item["studios"]:
+        i = 0
+        for studio in JSON.ObjectFromString(item["studios"]):
+          if i>0:
+            studio += ", "
+          studios += studio
+          i += 1
+      if item["tv"]:
+        oc.add(TVShowObject(
+          key = Callback(MenuItem, url = TV_URL % item["id"], title = item["name"], type = "Episodes", content = ContainerContent.Episodes),
+          rating_key = item["id"],
+          title = item["name"],
+          thumb = POSTER_URL % item["imdb"],
+          summary = item["overview"],
+          duration = item["runtime"] * 60 * 1000,
+          studio = studios,
+          rating = float(item["rating"])/10,
+          content_rating = item["classification"]))
+      else:
+        item_type = "Movie"
+        oc.add(MovieObject(
+          key = Callback(Lookup, type = item_type, id = item["id"], item = item),
+          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Movie", url = video_url, id = item["id"]))], protocol = "webkit") ],
+          rating_key = item["id"],
+          title = item["name"],
+          thumb = POSTER_URL % item["imdb"],
+          summary = item["overview"],
+          year = item["year"],
+          duration = item["runtime"] * 60 * 1000,
+          studio = studios,
+          rating = float(item["rating"])/10,
+          content_rating = item["classification"]))
 
-  for item in data["results"]:
-    # Declare all items as movies until the Episode API is ready
-    # This does mean that TV shows automatically play the next episode when selected
-    video_url = PlaybackURL( PLAYER_URL % item["id"], Prefs["playbackpreference"] )
-    studios = ""
-    if item["tv"]:
-      item_type = "TV"
-    else:
-      item_type = "Movie"
-    if item["studios"]:
-      i = 0
-      for studio in JSON.ObjectFromString(item["studios"]):
-        if i>0:
-          studio += ", "
-        studios += studio
-        i += 1
-    oc.add(MovieObject(
-      key = Callback(Lookup, type = item_type, id = item["id"], item = item),
-      items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Movie", url = video_url, id = item["id"]))], protocol = "webkit") ],
-      rating_key = item["id"],
-      title = item["name"],
-      thumb = POSTER_URL % item["imdb"],
-      summary = item["overview"],
-      year = item["year"],
-      duration = item["runtime"] * 60 * 1000,
-      studio = studios,
-      rating = float(item["rating"])/10,
-      content_rating = item["classification"]))
 
   # Pagination disabled for the time being, let's see how it goes.
   # If there are further results, add an item to allow them to be browsed.
