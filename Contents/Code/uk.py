@@ -1,4 +1,4 @@
-import cgi
+import cgi, urllib
 import webbrowser
 from account import Account
 
@@ -62,7 +62,7 @@ def MainMenu():
 
 @route("/video/netflixuk/uk/search")
 def Search(query):
-  return MenuItem(url = SEARCH_URL % query, title = query, content = ContainerContent.Mixed)
+  return MenuItem(url = SEARCH_URL % urllib.quote_plus(query), title = query, content = ContainerContent.Mixed)
 
 ###################################################################################################
 
@@ -90,9 +90,10 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
   params["interval"] = int(interval)
 
   # Load JSON from URL
-  data = JSON.ObjectFromURL( url )
-  if data["status"]["code"] != 200:
-    Log("Error loading url : " + str(data["status"]["code"]) + " " + url )
+  try:
+    data = JSON.ObjectFromURL( url )
+  except Ex.HTTPError, e:
+    Log( "Error loading url : %s %s" % (e.code, url) )
     return ObjectContainer(header="No Results", message="No results were found")
 
   if type == "Episodes":
