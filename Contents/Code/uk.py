@@ -10,13 +10,6 @@ POSTER_URL      = "http://static.djinteractive.co.uk/img/posters/200/%s.200.jpg"
 
 PLAYER_URL      = "http://www.netflix.com/WiPlayer?movieid=%s"
 
-MOVIE_PATTERN   = Regex("^http://(.)+\.netflix.com/catalog/titles/movies/[0-9]+$")
-TVSHOW_PATTERN  = Regex("^http://(.)+\.netflix.com/catalog/titles/series/[0-9]+$")
-SEASON_PATTERN  = Regex("^http://(.)+\.netflix.com/catalog/titles/series/[0-9]+/seasons/[0-9]+$")
-EPISODE_PATTERN = Regex("^http://(.)+\.netflix.com/catalog/titles/programs/[0-9]+/[0-9]+")
-
-EPISODE_TITLE_PATTERN = Regex("^S(?P<season>[0-9]+):E(?P<episode>[0-9]+) - (?P<title>.+)$")
-
 ###################################################################################################
 
 def MainMenu():
@@ -75,19 +68,8 @@ def FreeTrial():
 ###################################################################################################
 
 @route("/video/netflixuk/uk/menuitem")
-def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = ContainerContent.Mixed, is_queue = False):
+def MenuItem(url, title, type = "Mixed", content = ContainerContent.Mixed):
   oc = ObjectContainer(title2 = title, content = content)
-
-  # Separate out the specified parameters from the original URL
-  params = {}
-  if url.find("?") > -1:
-    original_params = String.ParseQueryString(url[url.find("?") + 1:])
-    for key, value in original_params.items():
-  	 params[key] = value[0]
-
-  # Add the paging parameters
-  params["page"] = int(page)
-  params["interval"] = int(interval)
 
   # Load JSON from URL
   try:
@@ -96,12 +78,12 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
     Log( "Error loading url : %s %s" % (e.code, url) )
     return ObjectContainer(header="No Results", message="No results were found")
 
+  # Display movie listings
   if type == "Episodes":
     if "episodes" in data and data["episodes"]:
-      video_url = PlaybackURL( PLAYER_URL % data["id"], Prefs["playbackpreference"] )
       oc.add(EpisodeObject(
-        key = Callback(Lookup, type = "Movie", id = data["id"]),
-        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Movie", url = video_url, id = data["id"]))], protocol = "webkit") ],
+        key = Callback(Lookup, id = data["id"]),
+        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, id = data["id"]))], protocol = "webkit") ],
         rating_key = data["id"],
         title = "Resume",
         show = data["name"],
@@ -111,11 +93,10 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
         rating = float(data["rating"])/10,
         content_rating = data["classification"]))
       for item in data["episodes"]:
-        video_url = PlaybackURL( PLAYER_URL % item["id"], Prefs["playbackpreference"] )
         episode_name = str(item["season"]) + "x" + str(item["episode"]).zfill(2) + " " + item["name"]
         oc.add(EpisodeObject(
-          key = Callback(Lookup, type = "Movie", id = item["id"]),
-          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Episode", url = video_url, id = item["id"]))], protocol = "webkit") ],
+          key = Callback(Lookup, id = item["id"]),
+          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, id = item["id"]))], protocol = "webkit") ],
           rating_key = item["id"],
           title = episode_name,
           show = data["name"],
@@ -126,11 +107,11 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
           duration = item["runtime"] * 60 * 1000,
           rating = float(data["rating"])/10,
           content_rating = data["classification"]))
-    else: # Handle one off TV Programmes that have no individual episodes
-      video_url = PlaybackURL( PLAYER_URL % data["id"], Prefs["playbackpreference"] )
+    else:
+      # Handle one off TV Programmes that have no individual episodes
       oc.add(EpisodeObject(
-        key = Callback(Lookup, type = "Movie", id = data["id"]),
-        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Episode", url = video_url, id = data["id"]))], protocol = "webkit") ],
+        key = Callback(Lookup, id = data["id"]),
+        items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, id = data["id"]))], protocol = "webkit") ],
         rating_key = data["id"],
         title = data["name"],
         show = data["name"],
@@ -143,7 +124,6 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
         content_rating = data["classification"]))
   else:
     for item in data["results"]:
-      video_url = PlaybackURL( PLAYER_URL % item["id"], Prefs["playbackpreference"] )
       studios = ""
       if item["studios"]:
         i = 0
@@ -164,10 +144,9 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
           rating = float(item["rating"])/10,
           content_rating = item["classification"]))
       else:
-        item_type = "Movie"
         oc.add(MovieObject(
-          key = Callback(Lookup, type = item_type, id = item["id"], item = item),
-          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = "Movie", url = video_url, id = item["id"]))], protocol = "webkit") ],
+          key = Callback(Lookup, id = item["id"]),
+          items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, id = item["id"]))], protocol = "webkit") ],
           rating_key = item["id"],
           title = item["name"],
           thumb = POSTER_URL % item["imdb"],
@@ -178,16 +157,6 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
           rating = float(item["rating"])/10,
           content_rating = item["classification"]))
 
-
-  # Pagination disabled for the time being, let's see how it goes.
-  # If there are further results, add an item to allow them to be browsed.
-  #total_results = int(data["total"])
-  #if total_results > 0:
-  #  if total_results > (page * interval):
-  #    oc.add(DirectoryObject(
-  #      key = Callback(MenuItem, url = url, title = title, page = page * interval, interval = interval, content = content),
-  #      title = "Next..."))
-
   # Check to see if we have any results
   if len(oc) == 0:
     return ObjectContainer(header="No Results", message="No results were found")
@@ -196,116 +165,29 @@ def MenuItem(url, title, page = 1, interval = 50, type = "Mixed", content = Cont
 
 ###################################################################################################
 
-def PlaybackURL(url, preference):
-  if preference == "Resume":
-    return url + "&resume=true"
-
-  return url
-
-
-###################################################################################################
-
-def parseItemDetails(item):
-  id = item["id"] or ""
-  video_url = PLAYER_URL % id
-  season_url = None
-  episode_url = None
-  title = item["name"] or ""
-  show = None
-  season_index = None
-  episode_index = None
-  episode_count = None
-  summary = item["overview"] or ""
-  duration = item["runtime"] * 60 * 1000 or None
-  rating = float(item["rating"])/10 or None
-  content_rating = item["classification"] or None
-  directors = None
-  genres = None
-  artwork = POSTER_URL % item["imdb"]
-
-  return {
-    'id': id,
-    'url': video_url,
-    'season_url': season_url,
-    'episode_url': episode_url,
-    'title': title,
-    'show': show,
-    'season_index': season_index,
-    'episode_index': episode_index,
-    'episode_count': episode_count,
-    'summary': summary,
-    'duration': duration,
-    'rating': rating,
-    'content_rating': content_rating,
-    'directors': directors,
-    'genres': genres,
-    'thumb': artwork}
-
-###################################################################################################
-
 @route("/video/netflixuk/uk/lookup")
-def Lookup(type, id, item = None):
-  oc = ObjectContainer()
-
-  Log("Lookup " + type + ", "+ id)
+def Lookup(id):
+  Log("Lookup " + id)
   return ObjectContainer(header="Lookup Unavailable", message="This class has been depreciated")
-  # Separate out the specified parameters from the original URL
-  params = {}
-
-  item_details = parseItemDetails(item)
-
-  video_url = PlaybackURL(item_details["url"], Prefs["playbackpreference"])
-
-  if type == "Movie":
-    oc.add(MovieObject(
-      key = Callback(Lookup, type = type, id = id),
-      rating_key = id,
-      items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = type, url = video_url, id = id))], protocol = "webkit") ],
-      title = item_details["title"],
-      thumb = item_details["thumb"][0],
-      summary = item_details["summary"],
-      genres = item_details["genres"],
-      directors = item_details["directors"],
-      duration = item_details["duration"],
-      rating = item_details["rating"],
-      content_rating = item_details["content_rating"]))
-  else:
-    oc.add(EpisodeObject(
-      key = Callback(Lookup, type = type, id = id),
-      rating_key = id,
-      items = [ MediaObject(parts = [PartObject(key = Callback(PlayVideo, type = type, url = video_url, id = id))], protocol = "webkit") ],
-      title = item_details["title"],
-      show = item_details["show"],
-      season = item_details["season_index"],
-      index = item_details["episode_index"],
-      thumb = item_details["thumb"][0],
-      summary = item_details["summary"],
-      directors = item_details["directors"],
-      duration = item_details["duration"],
-      rating = item_details["rating"],
-      content_rating = item_details["content_rating"]))
-
-  return oc
 
 ###################################################################################################
 
 @route("/video/netflixuk/uk/playvideo")
 @indirect
-def PlayVideo(type, url, id, indirect = None):
+def PlayVideo(id):
   oc = ObjectContainer()
 
   user_url = "http://api-public.netflix.com/users/%s" % Account.GetUserId()
-
   params = {"movieid": id, "user": user_url}
   video_url = Account.GetAPIURL(PLAYER_URL % id, params = params)
 
   # If the &resume=true parameter was specified, ensure that it"s copied to the final webkit URL
-  if url.endswith("&resume=true"):
+  if Prefs["playbackpreference"] == "Resume":
     video_url = video_url + "&resume=true"
   Log("Final WebKit URL: " + video_url)
 
   oc.add(VideoClipObject(
-    key = Callback(Lookup, type = type, id = id),
+    key = Callback(Lookup, id = id),
     rating_key = id,
     items = [
       MediaObject(
