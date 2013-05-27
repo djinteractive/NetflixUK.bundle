@@ -176,6 +176,15 @@
             </action>
         </event>
 
+        <event>
+            <condition>
+                <javascript script="NF.play_state==104 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="50"/>
+                <goto state="end"/>
+            </action>
+        </event>
     </state>
 
     <state name="paused">
