@@ -185,6 +185,16 @@
                 <goto state="end"/>
             </action>
         </event>
+
+        <event>
+            <condition>
+                <javascript script="NF.play_state==999 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="50"/>
+                <goto state="end" param="The Netflix player timed out"/>
+            </action>
+        </event>
     </state>
 
     <state name="paused">
@@ -217,6 +227,16 @@
             <action>
                 <pause time="100"/>
                 <run script="NF.pause();"/>
+            </action>
+        </event>
+
+        <event>
+            <condition>
+                <javascript script="NF.play_state==999 ? 1 : 0" matches="1"/>
+            </condition>
+            <action>
+                <pause time="50"/>
+                <goto state="end" param="The Netflix player timed out"/>
             </action>
         </event>
     </state>
