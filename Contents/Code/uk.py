@@ -122,7 +122,7 @@ def MenuItem(url, title, type = "Mixed", content = ContainerContent.Mixed):
         duration = data["runtime"] * 60 * 1000,
         rating = float(data["rating"])/10,
         content_rating = data["classification"]))
-  else:
+  elif "results" in data and data["results"]:
     for item in data["results"]:
       studios = ""
       if item["studios"]:
